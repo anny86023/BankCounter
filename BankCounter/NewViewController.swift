@@ -18,9 +18,9 @@ class NewViewController: UIViewController, UITableViewDataSource, UITableViewDel
     var processingArray = Array(repeating: 0, count: 5)    // 修改“處理進行”數量
     var processedArray = Array(repeating: "", count: 5)    // 修改“已處理完成”數量
     // *** 請在這裡更改！ ***
-    
-    var count = 1
+
     var waitingQueue = [Int]()
+    var count = 1
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -30,42 +30,32 @@ class NewViewController: UIViewController, UITableViewDataSource, UITableViewDel
         
         nextButton.layer.masksToBounds = true
         nextButton.layer.cornerRadius = 10
-        
-        let currentQueue: DispatchQueue = DispatchQueue(label: "CorrentQueue", attributes: .concurrent)
-        currentQueue.async {
-            while true{
-                if self.waitingQueue.count > 0 {
-                    for i in 0...self.nameArray.count - 1{
-                        if self.processingArray[i] == 0 && self.waitingQueue.count > 0{
-                            self.process_delay(Item: i)
-                        }
-                    }
-                }
-                DispatchQueue.main.async {
-                    self.waitingsLabel.text = "waitings: \(self.waitingQueue.count)"
-                }
-            }
-        }
     }
     
     func process_delay(Item: Int){
         processingArray[Item] = waitingQueue[0]
-        waitingQueue.remove(at: 0)
-        DispatchQueue.main.async {
-            self.myTable.reloadData()
-            self.waitingsLabel.text = "waitings: \(self.waitingQueue.count)"
-        }
-        let globalQueue = DispatchQueue.global()
-        // 修改處理秒數
-        let sec = Double.random(in: 1...5)
-        
-        globalQueue.asyncAfter(deadline: .now() + sec) {
-            print("處理進行 \(sec) 秒")
-            self.processedArray[Item] += "\(self.processingArray[Item]), "
+        if waitingQueue.count > 0{
+            waitingQueue.remove(at: 0)
             DispatchQueue.main.async {
                 self.myTable.reloadData()
+                self.waitingsLabel.text = "waitings: \(self.waitingQueue.count)"
             }
-            self.processingArray[Item] = 0
+            let globalQueue = DispatchQueue.global()
+            // 修改處理秒數
+            let sec = Double.random(in: 1...5)
+            
+            globalQueue.asyncAfter(deadline: .now() + sec) {
+                print("處理進行 \(sec) 秒")
+                self.processedArray[Item] += "\(self.processingArray[Item]), "
+                self.processingArray[Item] = 0
+                DispatchQueue.main.async {
+                    self.myTable.reloadData()
+                    self.waitingsLabel.text = "waitings: \(self.waitingQueue.count)"
+                }
+                if self.waitingQueue.count > 0{
+                    self.currentQueueTurnOn()
+                }
+            }
         }
     }
     
@@ -73,6 +63,21 @@ class NewViewController: UIViewController, UITableViewDataSource, UITableViewDel
         waitingQueue.append(count)
         count += 1
         nextButton.setTitle("Next \(count)", for: .normal)
+        
+        if waitingQueue.count > 0{
+            waitingsLabel.text = "waitings: \(self.waitingQueue.count)"
+            currentQueueTurnOn()
+        }
+    }
+    
+    func currentQueueTurnOn(){
+        if waitingQueue.count > 0{
+            for i in 0...nameArray.count - 1{
+                if processingArray[i] == 0 && self.waitingQueue.count > 0{
+                    process_delay(Item: i)
+                }
+            }
+        }
     }
     
     func numberOfSections(in tableView: UITableView) -> Int {
